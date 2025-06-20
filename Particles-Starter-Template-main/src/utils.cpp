@@ -22,10 +22,10 @@ static auto make_square_mesh() -> gl::Mesh
             gl::VertexBuffer_Descriptor{
                 .layout = {gl::VertexAttribute::Position2D(0), gl::VertexAttribute::UV(1)},
                 .data   = {
-                    -1.f, -1.f, 0.f, 0.f, //
-                    +1.f, -1.f, 1.f, 0.f, //
-                    +1.f, +1.f, 1.f, 1.f, //
-                    -1.f, +1.f, 0.f, 1.f  //
+                    -1.f, -1.f, 0.f, 0.f,
+                    +1.f, -1.f, 1.f, 0.f,
+                    +1.f, +1.f, 1.f, 1.f,
+                    -1.f, +1.f, 0.f, 1.f
                 }
             }
         },
@@ -37,7 +37,7 @@ static auto make_disk_shader() -> gl::Shader
 {
     return gl::Shader{
         gl::Shader_Descriptor{
-            .vertex   = gl::ShaderSource::Code({R"GLSL(
+            .vertex = gl::ShaderSource::Code({R"GLSL(
 #version 410
 
 layout(location = 0) in vec2 in_position;
@@ -52,7 +52,6 @@ out vec2 v_uv;
 void main()
 {
     vec2 position = u_position + u_radius * in_position;
-
     gl_Position = vec4(position * vec2(u_inverse_aspect_ratio, 1.), 0., 1.);
     v_uv = in_uv;
 }
@@ -61,7 +60,6 @@ void main()
 #version 410
 
 out vec4 out_color;
-
 in vec2 v_uv;
 uniform vec4 u_color;
 
@@ -89,5 +87,113 @@ void draw_disk(glm::vec2 position, float radius, glm::vec4 const& color)
     disk_shader.set_uniform("u_color", color);
     square_mesh.draw();
 }
+
+static auto make_line_shader() -> gl::Shader
+{
+    return gl::Shader{
+        gl::Shader_Descriptor{
+            .vertex = gl::ShaderSource::Code({R"GLSL(
+#version 410
+
+uniform vec2 u_start;
+uniform vec2 u_end;
+uniform float u_thickness;
+uniform float u_inverse_aspect_ratio;
+
+const vec2 quadOffsets[4] = vec2[](
+    vec2(-1.0, -1.0),
+    vec2( 1.0, -1.0),
+    vec2( 1.0,  1.0),
+    vec2(-1.0,  1.0)
+);
+
+void main() {
+    vec2 dir = normalize(u_end - u_start);
+    vec2 normal = vec2(-dir.y, dir.x);
+    vec2 middle = (u_start + u_end) * 0.5;
+    vec2 pos = middle
+             + quadOffsets[gl_VertexID].x * (u_end - u_start) * 0.5
+             + quadOffsets[gl_VertexID].y * normal * u_thickness * 0.5;
+    gl_Position = vec4(pos * vec2(u_inverse_aspect_ratio, 1.), 0., 1.);
+}
+)GLSL"}),
+            .fragment = gl::ShaderSource::Code({R"GLSL(
+#version 410
+
+out vec4 out_color;
+uniform vec4 u_color;
+
+void main()
+{
+    out_color = u_color;
+}
+)GLSL"}),
+        }
+    };
+}
+
+void draw_line(glm::vec2 start, glm::vec2 end, float thickness, glm::vec4 const& color)
+{
+    static auto line_mesh = make_square_mesh();
+    static auto line_shader = make_line_shader();
+    line_shader.bind();
+    line_shader.set_uniform("u_start", start);
+    line_shader.set_uniform("u_end", end);
+    line_shader.set_uniform("u_thickness", thickness);
+    line_shader.set_uniform("u_inverse_aspect_ratio", 1.f / gl::framebuffer_aspect_ratio());
+    line_shader.set_uniform("u_color", color);
+    line_mesh.draw();
+}
+
+std::optional<glm::vec2> segment_intersection(
+    glm::vec2 p1, glm::vec2 p2,
+    glm::vec2 q1, glm::vec2 q2)
+{
+    glm::vec2 r = p2 - p1;
+    glm::vec2 s = q2 - q1;
+
+    float rxs = r.x * s.y - r.y * s.x;
+    glm::vec2 qp = q1 - p1;
+    float qpxr = qp.x * r.y - qp.y * r.x;
+
+    // Si rxs == 0, les segments sont colinéaires ou parallèles (on ignore ce cas comme demandé)
+    if (std::abs(rxs) < 1e-8f) return std::nullopt;
+
+    float t = (qp.x * s.y - qp.y * s.x) / rxs;
+    float u = qpxr / rxs;
+
+    if (t >= 0.f && t <= 1.f && u >= 0.f && u <= 1.f)
+        return p1 + t * r;
+
+    return std::nullopt;
+}
+
+std::optional<glm::vec2> segment_circle_intersection(glm::vec2 p1, glm::vec2 p2, glm::vec2 center, float radius)
+{
+    glm::vec2 d = p2 - p1;
+    glm::vec2 f = p1 - center;
+
+    float a = glm::dot(d, d);
+    float b = 2 * glm::dot(f, d);
+    float c = glm::dot(f, f) - radius * radius;
+
+    float discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0) return std::nullopt; // pas d'intersection
+
+    discriminant = std::sqrt(discriminant);
+
+    float t1 = (-b - discriminant) / (2 * a);
+    float t2 = (-b + discriminant) / (2 * a);
+
+    if (t1 >= 0.f && t1 <= 1.f)
+        return p1 + t1 * d;
+    else if (t2 >= 0.f && t2 <= 1.f)
+        return p1 + t2 * d;
+
+    return std::nullopt;
+}
+
+
 
 } // namespace utils
