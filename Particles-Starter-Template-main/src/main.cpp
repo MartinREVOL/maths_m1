@@ -253,13 +253,8 @@ int main()
         float lifetime;
         float age = 0.f;
 
-        Particle()
+        Particle(glm::vec2 p) : position(p)
         {
-            // Rectangle centré en (0.5, 0) de taille (0.4, 0.8)
-            position = glm::vec2(
-                utils::rand(0.3f, 0.7f),  // X
-                utils::rand(-0.4f, 0.4f)  // Y
-            );
             lifetime = utils::rand(2.f, 5.f);
         }
 
@@ -283,6 +278,17 @@ int main()
 
     std::vector<Particle> particles;
 
+    // Parallélogramme défini par un point d'origine et deux vecteurs
+    glm::vec2 origin = {-0.3f, -0.3f};
+    glm::vec2 v1 = {0.3f, 0.0f};   // largeur
+    glm::vec2 v2 = {0.2f, 0.6f};   // inclinaison
+
+    auto random_point_in_parallelogram = [&]() -> glm::vec2 {
+        float u = utils::rand(0.f, 1.f);
+        float v = utils::rand(0.f, 1.f);
+        return origin + u * v1 + v * v2;
+    };
+
     while (gl::window_is_open())
     {
         float dt = gl::delta_time_in_seconds();
@@ -297,9 +303,9 @@ int main()
             particles.end()
         );
 
-        // Ajouter de nouvelles particules
+        // Ajouter des nouvelles particules
         while (particles.size() < 300)
-            particles.emplace_back();
+            particles.emplace_back(random_point_in_parallelogram());
 
         // Mettre à jour et dessiner
         for (auto& p : particles)
@@ -307,5 +313,16 @@ int main()
             p.update(dt);
             utils::draw_disk(p.position, p.radius(), p.color());
         }
+
+        // Dessiner les bords du parallélogramme
+        //glm::vec2 A = origin;
+        //glm::vec2 B = origin + v1;
+        //glm::vec2 C = origin + v1 + v2;
+        //glm::vec2 D = origin + v2;
+
+        //utils::draw_line(A, B, 0.005f, {1.f, 0.f, 1.f, 1.f});
+        //utils::draw_line(B, C, 0.005f, {1.f, 0.f, 1.f, 1.f});
+        //utils::draw_line(C, D, 0.005f, {1.f, 0.f, 1.f, 1.f});
+        //utils::draw_line(D, A, 0.005f, {1.f, 0.f, 1.f, 1.f});
     }
 }
