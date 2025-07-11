@@ -1,0 +1,69 @@
+int main()
+{
+    gl::init("Particules!");
+    gl::maximize_window();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+    struct Particle
+    {
+        glm::vec2 position;
+        float lifetime;
+        float age = 0.f;
+
+        Particle()
+        {
+            // Rectangle centré en (0.5, 0) de taille (0.4, 0.8)
+            position = glm::vec2(
+                utils::rand(0.3f, 0.7f),  // X
+                utils::rand(-0.4f, 0.4f)  // Y
+            );
+            lifetime = utils::rand(2.f, 5.f);
+        }
+
+        void update(float dt)
+        {
+            age += dt;
+        }
+
+        float radius() const
+        {
+            float x = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
+            return 0.01f * x;
+        }
+
+        glm::vec4 color() const
+        {
+            float alpha = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
+            return glm::vec4(1.f, 1.f, 1.f, alpha);
+        }
+    };
+
+    std::vector<Particle> particles;
+
+    while (gl::window_is_open())
+    {
+        float dt = gl::delta_time_in_seconds();
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Supprimer les particules mortes
+        particles.erase(
+            std::remove_if(particles.begin(), particles.end(), [](const Particle& p) {
+                return p.age > p.lifetime;
+            }),
+            particles.end()
+        );
+
+        // Ajouter de nouvelles particules
+        while (particles.size() < 300)
+            particles.emplace_back();
+
+        // Mettre à jour et dessiner
+        for (auto& p : particles)
+        {
+            p.update(dt);
+            utils::draw_disk(p.position, p.radius(), p.color());
+        }
+    }
+}

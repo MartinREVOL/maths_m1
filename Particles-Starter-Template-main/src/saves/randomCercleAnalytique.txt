@@ -1,0 +1,77 @@
+int main()
+{
+    gl::init("Particules!");
+    gl::maximize_window();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+    struct Particle
+    {
+        glm::vec2 position;
+        float lifetime;
+        float age = 0.f;
+
+        Particle(glm::vec2 pos) : position(pos)
+        {
+            lifetime = utils::rand(2.f, 5.f);
+        }
+
+        void update(float dt)
+        {
+            age += dt;
+        }
+
+        float radius() const
+        {
+            float x = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
+            return 0.01f * x;
+        }
+
+        glm::vec4 color() const
+        {
+            float alpha = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
+            return glm::vec4(1.f, 1.f, 1.f, alpha);
+        }
+    };
+
+    std::vector<Particle> particles;
+
+    // Disque de spawn
+    glm::vec2 center = {0.f, 0.f};
+    float max_radius = 0.5f;
+
+    auto random_point_in_disk = [&]() -> glm::vec2 {
+        float angle = utils::rand(0.f, glm::two_pi<float>());
+        float radius = std::sqrt(utils::rand(0.f, 1.f)) * max_radius;
+        return center + radius * glm::vec2(std::cos(angle), std::sin(angle));
+    };
+
+    while (gl::window_is_open())
+    {
+        float dt = gl::delta_time_in_seconds();
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Supprimer les particules mortes
+        particles.erase(
+            std::remove_if(particles.begin(), particles.end(), [](const Particle& p) {
+                return p.age > p.lifetime;
+            }),
+            particles.end()
+        );
+
+        // Ajouter des particules pour en avoir 300
+        while (particles.size() < 300)
+            particles.emplace_back(random_point_in_disk());
+
+        // Mettre à jour et dessiner
+        for (auto& p : particles)
+        {
+            p.update(dt);
+            utils::draw_disk(p.position, p.radius(), p.color());
+        }
+
+        // Affichage du disque en filaire
+        //utils::draw_disk(center, max_radius, {1.f, 0.f, 1.f, 0.2f});
+    }
+}
