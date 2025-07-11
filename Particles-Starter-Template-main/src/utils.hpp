@@ -14,4 +14,6 @@ std::optional<glm::vec2> segment_intersection(glm::vec2 p1, glm::vec2 p2, glm::v
 
 std::optional<glm::vec2> segment_circle_intersection(glm::vec2 p1, glm::vec2 p2, glm::vec2 center, float radius);
 
+int rand_int(int min, int max);
+
 } // namespace utils

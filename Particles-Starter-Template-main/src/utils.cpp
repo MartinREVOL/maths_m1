@@ -194,6 +194,11 @@ std::optional<glm::vec2> segment_circle_intersection(glm::vec2 p1, glm::vec2 p2,
     return std::nullopt;
 }
 
+int rand_int(int min, int max)
+{
+    return static_cast<int>(std::floor(utils::rand(static_cast<float>(min), static_cast<float>(max) + 1.f)));
+}
+
 
 
 } // namespace utils

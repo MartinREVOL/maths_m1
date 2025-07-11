@@ -6,6 +6,9 @@
 #include <glm/gtx/color_space.hpp>
 #include <algorithm>
 #include <cmath>
+#include <glm/gtx/norm.hpp>
+#include <unordered_map>
+#include <array>
 
 // int main()
 // {
@@ -242,35 +245,25 @@
 
 int main()
 {
-    gl::init("Particules!");
+    gl::init("Poisson Sampling Progressif");
     gl::maximize_window();
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-    struct Particle
-    {
+    struct Particle {
         glm::vec2 position;
         float lifetime;
         float age = 0.f;
+        float radius = 0.01f;
 
-        Particle(glm::vec2 pos) : position(pos)
-        {
-            lifetime = utils::rand(2.f, 5.f);
-        }
+        Particle(glm::vec2 pos)
+            : position(pos), lifetime(utils::rand(4.f, 8.f)) {}
 
-        void update(float dt)
-        {
-            age += dt;
-        }
+        void update(float dt) { age += dt; }
 
-        float radius() const
-        {
-            float x = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
-            return 0.01f * x;
-        }
+        bool is_dead() const { return age > lifetime; }
 
-        glm::vec4 color() const
-        {
+        glm::vec4 color() const {
             float alpha = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
             return glm::vec4(1.f, 1.f, 1.f, alpha);
         }
@@ -278,14 +271,55 @@ int main()
 
     std::vector<Particle> particles;
 
-    // Disque de spawn
-    glm::vec2 center = {0.f, 0.f};
-    float max_radius = 0.5f;
+    float r = 0.05f;
+    float cell_size = r / std::sqrt(2.f);
+    float aspect = gl::window_aspect_ratio();
+    glm::vec2 min = {-aspect, -1.f};
+    glm::vec2 max = { aspect,  1.f};
+    glm::vec2 size = max - min;
 
-    auto random_point_in_disk = [&]() -> glm::vec2 {
-        float angle = utils::rand(0.f, glm::two_pi<float>());
-        float radius = std::sqrt(utils::rand(0.f, 1.f)) * max_radius;
-        return center + radius * glm::vec2(std::cos(angle), std::sin(angle));
+    int grid_w = static_cast<int>(size.x / cell_size) + 1;
+    int grid_h = static_cast<int>(size.y / cell_size) + 1;
+
+    std::vector<std::vector<int>> grid(grid_w * grid_h);
+
+    auto grid_index = [&](glm::vec2 p) -> glm::ivec2 {
+        glm::vec2 rel = (p - min) / cell_size;
+        return glm::ivec2(rel);
+    };
+
+    auto in_bounds = [&](glm::vec2 p) -> bool {
+        return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
+    };
+
+    auto is_valid = [&](glm::vec2 p) -> bool {
+        glm::ivec2 gi = grid_index(p);
+        int gx = gi.x, gy = gi.y;
+        for (int y = gy - 2; y <= gy + 2; ++y) {
+            for (int x = gx - 2; x <= gx + 2; ++x) {
+                if (x < 0 || y < 0 || x >= grid_w || y >= grid_h) continue;
+                for (int idx : grid[y * grid_w + x]) {
+                    if (glm::distance(particles[idx].position, p) < r)
+                        return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    auto add_particle = [&]() {
+        for (int tries = 0; tries < 30; ++tries) {
+            float x = utils::rand(min.x, max.x);
+            float y = utils::rand(min.y, max.y);
+            glm::vec2 p = {x, y};
+            if (is_valid(p)) {
+                int new_idx = (int)particles.size();
+                particles.emplace_back(p);
+                glm::ivec2 gi = grid_index(p);
+                grid[gi.y * grid_w + gi.x].push_back(new_idx);
+                break;
+            }
+        }
     };
 
     while (gl::window_is_open())
@@ -295,25 +329,37 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Supprimer les particules mortes
-        particles.erase(
-            std::remove_if(particles.begin(), particles.end(), [](const Particle& p) {
-                return p.age > p.lifetime;
-            }),
-            particles.end()
-        );
+        for (int i = (int)particles.size() - 1; i >= 0; --i) {
+            if (particles[i].is_dead()) {
+                glm::ivec2 gi = grid_index(particles[i].position);
+                auto& cell = grid[gi.y * grid_w + gi.x];
+                cell.erase(std::remove(cell.begin(), cell.end(), i), cell.end());
 
-        // Ajouter des particules pour en avoir 300
-        while (particles.size() < 300)
-            particles.emplace_back(random_point_in_disk());
+                // swap avec la dernière pour garder les indices valides
+                if (i != particles.size() - 1) {
+                    std::swap(particles[i], particles.back());
 
-        // Mettre à jour et dessiner
-        for (auto& p : particles)
-        {
-            p.update(dt);
-            utils::draw_disk(p.position, p.radius(), p.color());
+                    glm::ivec2 gi_old = grid_index(particles[i].position);
+                    auto& cell_old = grid[gi_old.y * grid_w + gi_old.x];
+                    for (int& idx : cell_old) {
+                        if (idx == (int)particles.size() - 1) {
+                            idx = i;
+                            break;
+                        }
+                    }
+                }
+
+                particles.pop_back();
+            }
         }
 
-        // Affichage du disque en filaire
-        //utils::draw_disk(center, max_radius, {1.f, 0.f, 1.f, 0.2f});
+        // Essayer d’ajouter une particule par frame
+        add_particle();
+
+        // Mise à jour + rendu
+        for (auto& p : particles) {
+            p.update(dt);
+            utils::draw_disk(p.position, p.radius, p.color());
+        }
     }
 }

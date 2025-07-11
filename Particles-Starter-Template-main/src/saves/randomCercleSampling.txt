@@ -1,0 +1,82 @@
+int main()
+{
+    gl::init("Rejection Sampling - Disque");
+    gl::maximize_window();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+    struct Particle
+    {
+        glm::vec2 position;
+        float lifetime;
+        float age = 0.f;
+
+        Particle(glm::vec2 pos) : position(pos)
+        {
+            lifetime = utils::rand(2.f, 5.f);
+        }
+
+        void update(float dt)
+        {
+            age += dt;
+        }
+
+        float radius() const
+        {
+            float x = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
+            return 0.01f * x;
+        }
+
+        glm::vec4 color() const
+        {
+            float alpha = glm::clamp(1.f - age / lifetime, 0.f, 1.f);
+            return glm::vec4(1.f, 1.f, 1.f, alpha);
+        }
+    };
+
+    std::vector<Particle> particles;
+
+    glm::vec2 center = {0.f, 0.f};
+    float radius = 0.5f;
+
+    auto random_point_in_disk_rejection = [&]() -> glm::vec2 {
+        while (true)
+        {
+            float x = utils::rand(-radius, radius);
+            float y = utils::rand(-radius, radius);
+            glm::vec2 offset = {x, y};
+
+            if (glm::dot(offset, offset) <= radius * radius)
+                return center + offset;
+        }
+    };
+
+    while (gl::window_is_open())
+    {
+        float dt = gl::delta_time_in_seconds();
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Supprimer les particules mortes
+        particles.erase(
+            std::remove_if(particles.begin(), particles.end(), [](const Particle& p) {
+                return p.age > p.lifetime;
+            }),
+            particles.end()
+        );
+
+        // Remplir jusqu’à 300 particules
+        while (particles.size() < 300)
+            particles.emplace_back(random_point_in_disk_rejection());
+
+        // Mise à jour et rendu
+        for (auto& p : particles)
+        {
+            p.update(dt);
+            utils::draw_disk(p.position, p.radius(), p.color());
+        }
+
+        // Dessin du disque englobant
+        //utils::draw_disk(center, radius, {1.f, 0.f, 1.f, 0.2f});
+    }
+}
