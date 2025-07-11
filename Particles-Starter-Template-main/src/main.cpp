@@ -253,7 +253,7 @@ int main()
         float lifetime;
         float age = 0.f;
 
-        Particle(glm::vec2 p) : position(p)
+        Particle(glm::vec2 pos) : position(pos)
         {
             lifetime = utils::rand(2.f, 5.f);
         }
@@ -278,15 +278,14 @@ int main()
 
     std::vector<Particle> particles;
 
-    // Parallélogramme défini par un point d'origine et deux vecteurs
-    glm::vec2 origin = {-0.3f, -0.3f};
-    glm::vec2 v1 = {0.3f, 0.0f};   // largeur
-    glm::vec2 v2 = {0.2f, 0.6f};   // inclinaison
+    // Disque de spawn
+    glm::vec2 center = {0.f, 0.f};
+    float max_radius = 0.5f;
 
-    auto random_point_in_parallelogram = [&]() -> glm::vec2 {
-        float u = utils::rand(0.f, 1.f);
-        float v = utils::rand(0.f, 1.f);
-        return origin + u * v1 + v * v2;
+    auto random_point_in_disk = [&]() -> glm::vec2 {
+        float angle = utils::rand(0.f, glm::two_pi<float>());
+        float radius = std::sqrt(utils::rand(0.f, 1.f)) * max_radius;
+        return center + radius * glm::vec2(std::cos(angle), std::sin(angle));
     };
 
     while (gl::window_is_open())
@@ -303,9 +302,9 @@ int main()
             particles.end()
         );
 
-        // Ajouter des nouvelles particules
+        // Ajouter des particules pour en avoir 300
         while (particles.size() < 300)
-            particles.emplace_back(random_point_in_parallelogram());
+            particles.emplace_back(random_point_in_disk());
 
         // Mettre à jour et dessiner
         for (auto& p : particles)
@@ -314,15 +313,7 @@ int main()
             utils::draw_disk(p.position, p.radius(), p.color());
         }
 
-        // Dessiner les bords du parallélogramme
-        //glm::vec2 A = origin;
-        //glm::vec2 B = origin + v1;
-        //glm::vec2 C = origin + v1 + v2;
-        //glm::vec2 D = origin + v2;
-
-        //utils::draw_line(A, B, 0.005f, {1.f, 0.f, 1.f, 1.f});
-        //utils::draw_line(B, C, 0.005f, {1.f, 0.f, 1.f, 1.f});
-        //utils::draw_line(C, D, 0.005f, {1.f, 0.f, 1.f, 1.f});
-        //utils::draw_line(D, A, 0.005f, {1.f, 0.f, 1.f, 1.f});
+        // Affichage du disque en filaire
+        //utils::draw_disk(center, max_radius, {1.f, 0.f, 1.f, 0.2f});
     }
 }
