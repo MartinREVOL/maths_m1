@@ -26,20 +26,22 @@ struct Particle {
 
 std::vector<Particle> particles;
 
-// Génère 50 particules réparties aléatoirement le long de la courbe
 void spawn_particles_on_bezier() {
     particles.clear(); // au cas où
+
     glm::vec2 p0 = {-0.5f, -0.5f};
     glm::vec2 p1 = {-0.2f,  0.5f};
     glm::vec2 p2 = gl::mouse_position();
     glm::vec2 p3 = { 0.5f,  0.5f};
 
-    for (int i = 0; i < 50; ++i) {
-        float t = utils::rand(0.f, 1.f);
+    int count = 50;
+    for (int i = 0; i < count; ++i) {
+        float t = static_cast<float>(i) / (count - 1); // t ∈ [0, 1]
         glm::vec2 pos = utils::bezier3_bernstein(p0, p1, p2, p3, t);
         particles.emplace_back(pos);
     }
 }
+
 
 int main() {
     gl::init("50 Particules sur une courbe de Bézier");
