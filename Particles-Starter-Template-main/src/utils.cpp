@@ -258,6 +258,12 @@ glm::vec2 bezier3_bernstein(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 
          + t * t * t * p3;
 }
 
+glm::vec2 bezier3_derivative(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t) {
+    float u = 1.f - t;
+    return 3.f * u * u * (p1 - p0)
+         + 6.f * u * t * (p2 - p1)
+         + 3.f * t * t * (p3 - p2);
+}
 
 
 

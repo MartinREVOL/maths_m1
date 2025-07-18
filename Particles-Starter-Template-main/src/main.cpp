@@ -16,18 +16,20 @@ void draw_parametric(std::function<glm::vec2(float)> const& parametric, int segm
     }
 }
 
-// Particule simple sans durée de vie
 struct Particle {
     glm::vec2 position;
+    glm::vec2 velocity;
     float radius = 0.01f;
 
-    Particle(glm::vec2 pos) : position(pos) {}
+    Particle(glm::vec2 pos, glm::vec2 vel)
+        : position(pos), velocity(vel) {}
 };
+
 
 std::vector<Particle> particles;
 
 void spawn_particles_on_bezier() {
-    particles.clear(); // au cas où
+    particles.clear();
 
     glm::vec2 p0 = {-0.5f, -0.5f};
     glm::vec2 p1 = {-0.2f,  0.5f};
@@ -36,11 +38,21 @@ void spawn_particles_on_bezier() {
 
     int count = 50;
     for (int i = 0; i < count; ++i) {
-        float t = static_cast<float>(i) / (count - 1); // t ∈ [0, 1]
+        float t = static_cast<float>(i) / (count - 1);
         glm::vec2 pos = utils::bezier3_bernstein(p0, p1, p2, p3, t);
-        particles.emplace_back(pos);
+        glm::vec2 tangent = utils::bezier3_derivative(p0, p1, p2, p3, t);
+
+        // Calcul de la normale (perpendiculaire à la tangente)
+        glm::vec2 normal = glm::normalize(glm::vec2(-tangent.y, tangent.x));
+
+        // Vitesse dans la direction de la normale, amplitude arbitraire
+        float speed = 0.2f;
+        glm::vec2 velocity = normal * speed;
+
+        particles.emplace_back(pos, velocity);
     }
 }
+
 
 
 int main() {
@@ -64,10 +76,11 @@ int main() {
             return utils::bezier3_bernstein(p0, p1, p2, p3, t);
         }, 100, 0.005f, glm::vec4(1.f, 0.f, 0.f, 1.f));
 
-        // Particules blanches
         for (auto& p : particles) {
+            p.position += p.velocity * gl::delta_time_in_seconds();
             utils::draw_disk(p.position, p.radius, glm::vec4(1.f));
         }
+
     }
 
     return 0;
