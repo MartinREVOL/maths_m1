@@ -228,6 +228,37 @@ glm::vec2 bezier3(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float 
     return lerp(d, e, t);
 }
 
+static int binomial_coeff(int n, int k) {
+    if (k == 0 || k == n) return 1;
+    int res = 1;
+    for (int i = 1; i <= k; ++i) {
+        res *= (n - (k - i));
+        res /= i;
+    }
+    return res;
+}
+
+// Bézier ordre 1 (segment)
+glm::vec2 bezier1_bernstein(glm::vec2 p0, glm::vec2 p1, float t) {
+    return (1 - t) * p0 + t * p1; // même chose que De Casteljau
+}
+
+// Bézier ordre 2 (quadratique)
+glm::vec2 bezier2_bernstein(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, float t) {
+    float u = 1 - t;
+    return u * u * p0 + 2 * u * t * p1 + t * t * p2;
+}
+
+// Bézier ordre 3 (cubique)
+glm::vec2 bezier3_bernstein(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t) {
+    float u = 1 - t;
+    return u * u * u * p0
+         + 3 * u * u * t * p1
+         + 3 * u * t * t * p2
+         + t * t * t * p3;
+}
+
+
 
 
 } // namespace utils

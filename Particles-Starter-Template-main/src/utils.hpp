@@ -21,5 +21,10 @@ glm::vec2 bezier1(glm::vec2 p0, glm::vec2 p1, float t);
 glm::vec2 bezier2(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, float t);
 glm::vec2 bezier3(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t);
 
+glm::vec2 bezier1_bernstein(glm::vec2 p0, glm::vec2 p1, float t);
+glm::vec2 bezier2_bernstein(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, float t);
+glm::vec2 bezier3_bernstein(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t);
+
+
 
 } // namespace utils
