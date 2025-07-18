@@ -16,4 +16,10 @@ std::optional<glm::vec2> segment_circle_intersection(glm::vec2 p1, glm::vec2 p2,
 
 int rand_int(int min, int max);
 
+glm::vec2 lerp(glm::vec2 a, glm::vec2 b, float t);
+glm::vec2 bezier1(glm::vec2 p0, glm::vec2 p1, float t);
+glm::vec2 bezier2(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, float t);
+glm::vec2 bezier3(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t);
+
+
 } // namespace utils

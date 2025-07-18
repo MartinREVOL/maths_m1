@@ -199,6 +199,35 @@ int rand_int(int min, int max)
     return static_cast<int>(std::floor(utils::rand(static_cast<float>(min), static_cast<float>(max) + 1.f)));
 }
 
+// Interpolation linéaire
+glm::vec2 lerp(glm::vec2 a, glm::vec2 b, float t) {
+    return (1 - t) * a + t * b;
+}
+
+// Bézier d'ordre 1 : segment
+glm::vec2 bezier1(glm::vec2 p0, glm::vec2 p1, float t) {
+    return lerp(p0, p1, t);
+}
+
+// Bézier d'ordre 2 : quadratique
+glm::vec2 bezier2(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, float t) {
+    glm::vec2 a = lerp(p0, p1, t);
+    glm::vec2 b = lerp(p1, p2, t);
+    return lerp(a, b, t);
+}
+
+// Bézier d'ordre 3 : cubique
+glm::vec2 bezier3(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t) {
+    glm::vec2 a = lerp(p0, p1, t);
+    glm::vec2 b = lerp(p1, p2, t);
+    glm::vec2 c = lerp(p2, p3, t);
+
+    glm::vec2 d = lerp(a, b, t);
+    glm::vec2 e = lerp(b, c, t);
+
+    return lerp(d, e, t);
+}
+
 
 
 } // namespace utils
