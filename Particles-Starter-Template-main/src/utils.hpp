@@ -26,4 +26,7 @@ glm::vec2 bezier2_bernstein(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, float t);
 glm::vec2 bezier3_bernstein(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t);
 
 glm::vec2 bezier3_derivative(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, float t);
+
+float find_closest_t_on_bezier(glm::vec2 p, glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3);
+
 } // namespace utils

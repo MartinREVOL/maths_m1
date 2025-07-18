@@ -265,6 +265,31 @@ glm::vec2 bezier3_derivative(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2
          + 3.f * t * t * (p3 - p2);
 }
 
+float find_closest_t_on_bezier(glm::vec2 point, glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3) {
+    float t = 0.5f;                 // point de départ
+    float learning_rate = 0.01f;    // η
+    int max_iterations = 100;
+    float epsilon = 1e-5f;
+
+    for (int i = 0; i < max_iterations; ++i) {
+        glm::vec2 pt_on_curve = bezier3_bernstein(p0, p1, p2, p3, t);
+        glm::vec2 d_curve_dt = bezier3_derivative(p0, p1, p2, p3, t);
+
+        glm::vec2 diff = pt_on_curve - point;
+
+        // f(t) = ||B(t) - P||^2 → f'(t) = 2 (B(t) - P) · B'(t)
+        float grad = 2.f * glm::dot(diff, d_curve_dt);
+
+        // Mise à jour de t
+        t -= learning_rate * grad;
+        t = glm::clamp(t, 0.f, 1.f);
+
+        if (std::abs(grad) < epsilon) break;
+    }
+
+    return t;
+}
+
 
 
 } // namespace utils
